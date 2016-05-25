@@ -57,12 +57,7 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
         return;
     }
     
-    // cleanup file system: remove older releases, except current and the previous one
-    if (_pluginInternalPrefs.currentReleaseVersionName.length > 0) {
-        [HCPCleanupHelper removeUnusedReleasesExcept:@[_pluginInternalPrefs.currentReleaseVersionName,
-                                                       _pluginInternalPrefs.previousReleaseVersionName,
-                                                       _pluginInternalPrefs.readyForInstallationReleaseVersionName]];
-    }
+    [self cleanupOldReleases];
     
     _isPluginReadyForWork = YES;
     [self resetIndexPageToExternalStorage];
@@ -72,6 +67,15 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
     if (_pluginXmlConfig.isUpdatesAutoInstallationAllowed &&
         _pluginInternalPrefs.readyForInstallationReleaseVersionName.length > 0) {
         [self _installUpdate:nil];
+    }
+}
+
+- (void)cleanupOldReleases {
+    // cleanup file system: remove older releases, except current and the previous one
+    if (_pluginInternalPrefs.currentReleaseVersionName.length > 0) {
+        [HCPCleanupHelper removeUnusedReleasesExcept:@[_pluginInternalPrefs.currentReleaseVersionName,
+                                                       _pluginInternalPrefs.previousReleaseVersionName,
+                                                       _pluginInternalPrefs.readyForInstallationReleaseVersionName]];
     }
 }
 
@@ -89,7 +93,7 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
     HCPFilesStructure *fs = [[HCPFilesStructure alloc] initWithReleaseVersion:_pluginInternalPrefs.readyForInstallationReleaseVersionName];
     id<HCPConfigFileStorage> configStorage = [[HCPApplicationConfigStorage alloc] initWithFileStructure:fs];
     HCPApplicationConfig *configFromNewRelease = [configStorage loadFromFolder:fs.downloadFolder];
-        
+    
     if (configFromNewRelease.contentConfig.updateTime == HCPUpdateOnResume ||
         configFromNewRelease.contentConfig.updateTime == HCPUpdateNow) {
         [self _installUpdate:nil];
@@ -227,7 +231,7 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
     if (callbackID) {
         _installationCallback = callbackID;
     }
-
+    
     return YES;
 }
 
@@ -318,7 +322,7 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
 }
 
 /**
- *  Notify JavaScript module about occured event. 
+ *  Notify JavaScript module about occured event.
  *  For that we will use callback, received on plugin initialization stage.
  *
  *  @param result message to send to web side
@@ -422,7 +426,7 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
 }
 
 /**
- *  Remove subscription. 
+ *  Remove subscription.
  *  Should be called only when the application is terminated.
  */
 - (void)unsubscribeFromEvents {
@@ -772,6 +776,11 @@ static NSString *const DEFAULT_STARTING_PAGE = @"index.html";
                                                                           data:nil
                                                                          error:error];
     [self.commandDelegate sendPluginResult:errorResult callbackId:callbackID];
+}
+
+- (void)jsCleanupOldReleases:(CDVInvokedUrlCommand *)command {
+    [self cleanupOldReleases];
+    [self.commandDelegate sendPluginResult:[CDVPluginResult resultWithStatus:CDVCommandStatus_OK] callbackId:command.callbackId];
 }
 
 @end
